@@ -36,7 +36,7 @@ CoinGecko e RPCs publicnode.
 Claude Code (Linux/macOS):
 
 ```bash
-git clone git@github.com:<seu-usuario>/trader-metamask.git ~/.claude/skills/trader-metamask
+git clone https://github.com/rmontteiro/TRADER-METAMASK.git ~/.claude/skills/trader-metamask
 ```
 
 Ou descompacte o `trader-metamask.skill` (é um zip) em `~/.claude/skills/`.
