@@ -59,11 +59,18 @@ def gt(path):
     try:
         return C.http_json(GT + path)
     except C.Fail as e:
-        if "429" in str(e):
-            time.sleep(15)
-            _last_call[0] = time.time()
+        if "429" not in str(e):
+            raise
+    # Rate limited: back off and try twice more.
+    for pause in (20, 45):
+        time.sleep(pause)
+        _last_call[0] = time.time()
+        try:
             return C.http_json(GT + path)
-        raise
+        except C.Fail as e:
+            if "429" not in str(e):
+                raise
+    raise C.Fail("GeckoTerminal rate limit (HTTP 429); wait a minute and run again")
 
 
 # ---------- indicators ----------
@@ -203,8 +210,8 @@ def analyze(c):
         stop = min(e50[i], swing_lo) - 0.25 * A
         setups.append(("trend", stop, "price over EMA20 over a rising EMA50, RSI %.0f, not stretched" % r[i]))
     ind["warnings"] = []
-    if ind["atr_pct"] < 0.5:
-        return {"ind": dict(ind, warnings=["moves under 0.5% a candle: pegged or too quiet"]), "setup": None}
+    if ind["atr_pct"] < 0.5 and abs(px - 1) < 0.03:
+        return {"ind": dict(ind, warnings=["moves under 0.5% a candle near $1: a stablecoin"]), "setup": None}
     if r[i] is not None and r[i] > 75:
         ind["warnings"].append("RSI %.0f: overbought" % r[i])
     if ind["stretch_atr"] > 3:
