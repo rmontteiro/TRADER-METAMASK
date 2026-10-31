@@ -22,6 +22,7 @@ dele é tudo o que vem antes da assinatura e tudo o que vem depois.
 | ticket e "sim" | `ticket.py show` / `approve` | um ticket por vez; no modo live, o passo a passo da MetaMask; recusa "sim pra todos", "ok", "sim, mas..." |
 | verificar | `ticket.py result --tx` | confere no chain se o swap passou, de qual carteira e quanto entrou |
 | acompanhar | `ticket.py positions` | preço vs stop e alvo (a MetaMask não tem stop) |
+| alertas | `alerts.py check` | STOP HIT, TARGET HIT, NEAR STOP, NO STOP; cada um uma vez só; feito para rodar agendado (tarefa na nuvem ou cron com `notify-send`) |
 | diário | `ticket.py journal` | trades, P&L realizado, risco usado hoje |
 
 Redes: Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, Linea (EVM). Solana e
@@ -59,6 +60,17 @@ python3 $M/ticket.py show
 python3 $M/ticket.py approve --index 1 --reply "sim"
 python3 $M/ticket.py positions
 ```
+
+## Alertas agendados
+
+A MetaMask não vende sozinha no stop. Agende a checagem, por exemplo com cron
+no Ubuntu, a cada 15 minutos, com notificação na área de trabalho:
+
+```bash
+*/15 * * * * cd ~/daytrade && DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus python3 ~/.claude/skills/trader-metamask/scripts/alerts.py check --notify "notify-send Cripto"
+```
+
+O alerta só avisa. A venda continua passando por `plan.py sell`, `plan.py check` e o seu "sim".
 
 ## Configuração
 

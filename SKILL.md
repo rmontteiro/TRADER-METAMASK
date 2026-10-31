@@ -43,6 +43,7 @@ python3 $M/ticket.py show                                     # ticket (live = c
 python3 $M/ticket.py approve --index 1 --reply "<resposta do usuário, palavra por palavra>"
 python3 $M/ticket.py result --index 1 --tx 0x...              # live: confere no chain
 python3 $M/ticket.py positions                                # preço vs stop/alvo
+python3 $M/alerts.py check                                    # alertas novos de stop/alvo (para agendar)
 python3 $M/ticket.py journal
 ```
 
@@ -120,13 +121,38 @@ limite da API); `--limit` controla quantas.
      usuário. Depois ele cola o hash; `ticket.py result --tx` confere no chain
      se a transação passou, de qual carteira saiu e quanto entrou.
 7. **Acompanhar.** A MetaMask não tem stop nem take-profit: o swap é à vista.
-   `ticket.py positions` compara o preço com o stop e o alvo e grita STOP HIT /
-   TARGET HIT (sai com código 3). Para vigiar sem ninguém olhar, agende uma
-   checagem (só leitura) e avise o usuário; a saída é um novo `plan.py sell`,
-   novo check e novo sim. Ordens limite de verdade existem fora da MetaMask
-   (CoW Swap, 1inch); veja `references/metamask.md`.
+   `ticket.py positions` mostra todas as posições contra o stop e o alvo, e
+   `alerts.py check` é a versão para rodar agendada (veja "Alertas" abaixo).
+   A saída é sempre um novo `plan.py sell`, novo check e novo sim. Ordens limite
+   de verdade existem fora da MetaMask (CoW Swap, 1inch); veja
+   `references/metamask.md`.
 8. **Registrar.** `journal` mostra trades, P&L realizado, risco usado hoje e o
    caixa do paper.
+
+## Alertas de stop e alvo
+
+`alerts.py check` lê as posições abertas, pega o preço e avisa STOP HIT, TARGET
+HIT, NEAR STOP (a menos de `--near-pct`, padrão 2%, do stop) ou NO STOP. Cada
+alerta sai uma vez só por posição; volta a avisar se o preço sair da zona e
+voltar (`crypto/state/alerts.json`). Código 3 = alertas novos, 0 = nada novo.
+É só leitura: nunca planeja, aprova ou executa nada.
+
+```bash
+python3 $M/alerts.py check                 # só os alertas novos
+python3 $M/alerts.py check --all           # todas as posições com o status
+python3 $M/alerts.py check --notify "notify-send Cripto"   # roda um comando com o texto
+```
+
+Para agendar:
+- **Numa sessão do Claude na nuvem:** uma tarefa agendada que roda
+  `alerts.py check` na pasta onde está `crypto/` e só fala com o usuário quando
+  o código for 3. Uma checagem agendada nunca opera: ninguém está lá para dizer sim.
+- **No computador do usuário (Linux/macOS), com cron**, a cada 15 minutos e
+  com notificação na área de trabalho:
+  `*/15 * * * * cd ~/daytrade && DISPLAY=:0 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus python3 ~/.claude/skills/trader-metamask/scripts/alerts.py check --notify "notify-send Cripto"`
+
+O alerta só enxerga as posições do `crypto/` daquela pasta: rode os trades e os
+alertas na mesma pasta.
 
 ## Arquivos em crypto/
 
@@ -139,6 +165,7 @@ limite da API); `--limit` controla quantas.
 | `state/journal.json` | todo sim, não, fill, execução, falha, com hash e P&L (só cresce) |
 | `state/positions.json` | posições abertas e fechadas, preço médio, stop e alvo |
 | `state/paper.json` | caixa do paper trading |
+| `state/alerts.json` | quais alertas já foram dados, para não repetir |
 
 Os limites padrão (sem `config.json`) são pequenos de propósito: orçamento
 US$1.000, até US$200 por trade, perda máxima US$20 por trade e US$50 por dia,
