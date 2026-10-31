@@ -12,6 +12,7 @@ dele é tudo o que vem antes da assinatura e tudo o que vem depois.
 
 | etapa | script | o quê |
 | --- | --- | --- |
+| achar setups | `scanner.py scan` / `chart` | velas dos pools (GeckoTerminal): breakout, pullback e tendência com EMA20/50, RSI, ATR e volume; stop e alvo sugeridos; gráfico SVG de cada candidato em `crypto/charts/scan.html` |
 | achar o token | `market.py search` | lista todo contrato com o ticker, marca o OFFICIAL (CoinGecko) e as redes onde a moeda não existe |
 | checar golpe | `market.py token` | honeypot, taxas, poderes do dono, mint/pause/blacklist, liquidez, volume, idade do pool: OK / CAUTION / BLOCK |
 | carteira | `market.py wallet` | saldos de um endereço **público**, em USD (só leitura) |
@@ -26,7 +27,7 @@ dele é tudo o que vem antes da assinatura e tudo o que vem depois.
 Redes: Ethereum, Base, Arbitrum, Optimism, Polygon, BSC, Linea (EVM). Solana e
 Bitcoin ficam fora.
 
-Fontes públicas, sem chave de API: DefiLlama, DexScreener, GoPlus, honeypot.is,
+Fontes públicas, sem chave de API: GeckoTerminal, DefiLlama, DexScreener, GoPlus, honeypot.is,
 CoinGecko e RPCs publicnode.
 
 ## Instalação
@@ -42,13 +43,14 @@ Requer Python 3.8+, sem dependências.
 
 ## Uso
 
-Fale normalmente com o Claude: "quero comprar 100 dólares de PEPE na Base",
+Fale normalmente com o Claude: "tem algum setup bom na Base?", "quero comprar 100 dólares de PEPE na Base",
 "esse token é golpe? 0x...", "como estão minhas posições cripto". A skill dispara
 sozinha. Os dados ficam em `crypto/` no diretório atual (ou em
 `$TRADER_METAMASK_DIR`).
 
 ```bash
 M=~/.claude/skills/trader-metamask/scripts
+python3 $M/scanner.py scan --chain base
 python3 $M/market.py search PEPE
 python3 $M/market.py token --chain ethereum --address 0x6982508145454Ce325dDbE47a25d4ec3d2311933
 python3 $M/plan.py buy --chain base --token WETH --with USDC --stop-pct 5 --target-pct 12

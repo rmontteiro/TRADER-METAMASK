@@ -1,19 +1,16 @@
 ---
 name: trader-metamask
 description: >-
-  Crypto trades na MetaMask, do token ao swap: acha o contrato certo (e os
-  impostores com o mesmo ticker), checa se o token é golpe (honeypot, taxa,
-  dono com poderes, liquidez, idade do pool), dimensiona o trade pelo seu
-  stop e perda máxima contando slippage e gas, passa por um gate de risco,
-  e entrega um ticket passo a passo para VOCÊ assinar na MetaMask. Paper
-  trading por padrão. Verifica o swap on-chain pelo hash, acompanha stop e
-  alvo (a MetaMask não tem stop) e mantém o diário de P&L. Lê saldos de uma
-  carteira pública, nunca chave nem seed. Use sempre que o usuário falar em
-  comprar, vender ou trocar cripto, token, memecoin, altcoin, ETH, USDC, swap,
-  MetaMask, carteira, DEX, Uniswap, Base, Arbitrum, Polygon, BSC, "esse token
-  é golpe?", "quanto compro", "meu stop", "minhas posições cripto", mesmo sem
-  citar a MetaMask. Crypto trades in MetaMask: token safety, sizing, swap
-  tickets, paper trading.
+  Crypto trades na MetaMask, do setup ao swap: escaneia gráficos dos pools
+  (breakout, pullback, tendência, com stop, alvo e gráfico), acha o contrato
+  certo e os impostores, checa golpe (honeypot, taxa, dono, liquidez), dimensiona
+  pelo stop e perda máxima com slippage e gas, passa por um gate de risco e
+  entrega um ticket para VOCÊ assinar na MetaMask. Paper por padrão; verifica o
+  swap on-chain, acompanha stop e alvo e mantém o diário. Nunca pede seed nem
+  chave. Use sempre que o usuário falar em comprar, vender ou trocar cripto,
+  token, memecoin, ETH, USDC, swap, MetaMask, DEX, Uniswap, Base, Arbitrum,
+  Polygon, BSC, "tem setup?", "analisa o gráfico", "esse token é golpe?",
+  "quanto compro", "minhas posições cripto", mesmo sem citar a MetaMask.
 ---
 
 # trader-metamask
@@ -33,6 +30,7 @@ só biblioteca padrão, e gravam em `crypto/` no diretório atual (ou em
 
 ```bash
 M="${CLAUDE_SKILL_DIR}/scripts"
+python3 $M/scanner.py scan --chain base                       # setups nos gráficos + página com gráficos
 python3 $M/market.py search PEPE                              # todos os contratos com esse ticker
 python3 $M/market.py token --chain base --address 0x...       # golpe? OK / CAUTION / BLOCK
 python3 $M/market.py price --chain base --token WETH
@@ -50,9 +48,41 @@ python3 $M/ticket.py journal
 
 Redes: ethereum, base, arbitrum, optimism, polygon, bsc, linea (EVM, onde a
 MetaMask opera). Solana e Bitcoin ficam fora: outra carteira, outro modelo.
-Fontes, todas públicas e sem chave: DefiLlama (preço), DexScreener (pools,
+Fontes, todas públicas e sem chave: GeckoTerminal (velas), DefiLlama (preço), DexScreener (pools,
 liquidez, volume), GoPlus e honeypot.is (segurança do contrato), RPCs
 publicnode (saldo, gas, recibo). Se uma estiver fora, o script diz qual.
+
+## Achar setups: o scanner
+
+Quando o usuário pedir ideias ("o que está bom pra comprar", "tem setup?",
+"analisa o gráfico de X"), use o scanner. Ele lê as velas dos pools da DEX
+(GeckoTerminal, grátis) e procura três setups de compra:
+
+- **breakout**: fechou acima da máxima das últimas 20 velas, com volume 1,5x a
+  média, acima da EMA50;
+- **pullback**: tendência de alta (EMA20 sobre uma EMA50 subindo), o preço voltou
+  à EMA20 e fechou acima dela, RSI entre 40 e 60;
+- **trend**: preço > EMA20 > EMA50 subindo, RSI 55 a 70, sem estar esticado.
+
+Cada setup vem com stop abaixo da estrutura e alvo de pelo menos 2,5R. Os
+candidatos já passam pelos filtros de liquidez, volume e idade do config, os
+melhores passam pela checagem de golpe (BLOCK sai da lista), e cada um ganha um
+gráfico SVG com velas, EMAs, volume, entrada, stop e alvo. A página
+`crypto/charts/scan.html` junta todos: entregue-a ao usuário para ele ver antes
+de decidir.
+
+```bash
+python3 $M/scanner.py scan --chain base                    # trending + maior volume, velas de 1 h
+python3 $M/scanner.py scan --chain ethereum --tf 4h --all  # --all lista também quem não tem setup
+python3 $M/scanner.py scan --chain base --tokens 0x...,0x...
+python3 $M/scanner.py chart --chain base --token 0x... --tf day
+```
+
+Cada setup imprime a linha `plan.py buy ... --stop ... --target ...` pronta.
+Ela segue o fluxo normal abaixo (gate de risco, ticket, "sim"). Um setup é um
+padrão no preço passado, não uma previsão; diga isso, e nunca chame um setup de
+"compra garantida". Cada scan gasta uma chamada por pool (cerca de 2 s cada, pelo
+limite da API); `--limit` controla quantas.
 
 ## O fluxo
 
